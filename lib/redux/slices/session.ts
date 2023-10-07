@@ -26,20 +26,20 @@ export const logOut = () => {
 
 export const loggedIn = createAction<SocketResponse['AuthenticateUser']>('session/loggedIn')
 
-export type State = {
+export type SessionState = {
   isInit: boolean
   user?: Object | null
 }
 
 const initialState = {
   isInit: false
-} as State
+} as SessionState
 
 export const sessionSlice = createSlice({
   name: 'session',
   initialState,
   reducers: {
-    init: (state: State) => {
+    init: (state: SessionState) => {
       let user
       if (typeof window !== 'undefined') {
         try {
@@ -51,7 +51,7 @@ export const sessionSlice = createSlice({
       }
       state.isInit = true
     },
-    loggedOut: (state: State) => {
+    loggedOut: (state: SessionState) => {
       localStorage?.removeItem('user')
       state.user = null
     },
@@ -89,5 +89,5 @@ btzsocket.getInstance().addListener(loginListener)
 // Action creators are generated for each case reducer function
 export const { loggedOut, init } = sessionSlice.actions
 // Other code such as selectors can use the imported `RootState` type
-export const selectUser = (state: { session: State }) => state.session.user
-export const selectIsInit = (state: { session: State }) => state.session.isInit
+export const selectUser = (state: { session: SessionState }) => state.session.user
+export const selectIsInit = (state: { session: SessionState }) => state.session.isInit

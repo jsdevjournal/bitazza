@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux'
 import { logOut } from '@/lib/redux/slices/session'
 import {
   getPriceHistory,
-  selectTrade,
+  selectPair,
   PriceHistoryPeriod,
   getInstrumentsAsync
 } from '@/lib/redux/slices/trade'
@@ -23,7 +23,7 @@ export default function Page() {
     redirectTo: '/',
   })
 
-  const pairs = useSelector(selectTrade(search, period))
+  const pairs = useSelector(selectPair(search, period))
 
   useEffect(() => {
     (async () => {

@@ -70,36 +70,36 @@ export const convertPriceHistory = (array: number[]): PriceHistory => ({
   InstrumentId: array[8]
 })
 
-export type State = {
+export type TradeState = {
   computed: Record<ComputedInstrument['InstrumentId'], ComputedInstrument>
 }
 
 const initialState = {
   computed: {}
-} as State
+} as TradeState
 
 export const tradeSlice = createSlice({
   name: 'trade',
   initialState,
   reducers: {
-    gotHistory: (state: State, action: PayloadAction<SocketResponse['GetTickerHistory']>) => {
+    gotHistory: ({ computed }: TradeState, action: PayloadAction<SocketResponse['GetTickerHistory']>) => {
       const val = action.payload.map(convertPriceHistory)
       if (val.length) {
-        if (state.computed[val[0].InstrumentId]) {
-          state.computed[val[0].InstrumentId].Prices = val.sort((a, b) => b.DateTime - a.DateTime)
+        const { InstrumentId } = val[0]
+        if (computed[InstrumentId]) {
+          computed[InstrumentId].Prices = val.sort((a, b) => b.DateTime - a.DateTime)
         }
-        // state.prices[val[0].InstrumentId] = val.sort((a, b) => b.DateTime - a.DateTime)
       }
     },
   },
   extraReducers: (builder) => {
     builder.addMatcher(
       isAnyOf(getInstrumentsAsync.fulfilled, gotInstruments),
-      (state, action: PayloadAction<SocketResponse['GetInstruments']>) => {
+      ({ computed }: TradeState, action: PayloadAction<SocketResponse['GetInstruments']>) => {
         for (let val of action.payload) {
-          // state.instruments[val.InstrumentId] = val
-          if (!state.computed[val.InstrumentId]) {
-            state.computed[val.InstrumentId] = Object.assign({ Prices: [] }, val)
+          const { InstrumentId } = val
+          if (!computed[InstrumentId]) {
+            computed[InstrumentId] = Object.assign({ Prices: [] }, val)
           }
         }
       }
@@ -131,9 +131,9 @@ export type SelectComputedTrade = {
   ChangePercent: number
 }
 
-export const selectComputed = (state: { trade: State }) => state.trade.computed
+export const selectComputed = (state: { trade: TradeState }) => state.trade.computed
 
-export const selectTrade = (search: string, period: PriceHistoryPeriod) => createSelector(selectComputed, computed => {
+export const selectPair = (search: string, period: PriceHistoryPeriod) => createSelector(selectComputed, computed => {
   let lookbackIndex = 1
   if (period === PriceHistoryPeriod.D) {
     lookbackIndex = 1
@@ -142,8 +142,9 @@ export const selectTrade = (search: string, period: PriceHistoryPeriod) => creat
   } else if (period === PriceHistoryPeriod.M) {
     lookbackIndex = 30
   }
+  search = search.toUpperCase()
   return Object.values(computed)
-    .filter(val => val.Symbol.includes(search.toUpperCase()) && val.Prices.length)
+    .filter(val => val.Symbol.includes(search) && val.Prices.length)
     .map(val => {
       const { Prices, Symbol, InstrumentId } = val
       const Close = Prices[0].Close

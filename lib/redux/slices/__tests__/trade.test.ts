@@ -1,4 +1,4 @@
-import { selectTrade, tradeSlice, State as TradeState, PriceHistoryPeriod } from '../trade'; // Adjust the import path
+import { selectPair, tradeSlice, TradeState, PriceHistoryPeriod } from '../trade'; // Adjust the import path
 import { configureStore, EnhancedStore } from '@reduxjs/toolkit'
 
 describe('selectTrade Selector', () => {
@@ -35,10 +35,10 @@ describe('selectTrade Selector', () => {
       },
     });
 
-    const search = 'A';
+    const search = 'a';
     const period = PriceHistoryPeriod.D;
 
-    const result = selectTrade(search, period)(store.getState())
+    const result = selectPair(search, period)(store.getState())
 
     expect(result.length).toBe(1)
     expect(result).toEqual([
