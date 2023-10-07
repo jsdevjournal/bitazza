@@ -1,4 +1,4 @@
-import { createSlice, createAction, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAction, createAsyncThunk, PayloadAction, isAnyOf } from '@reduxjs/toolkit'
 import btzsocket, { type SocketListener, SocketResponse } from '@/lib/socket'
 
 export const loginAsync = createAsyncThunk(
@@ -26,7 +26,7 @@ export const logOut = () => {
 
 export const loggedIn = createAction<SocketResponse['AuthenticateUser']>('session/loggedIn')
 
-type State = {
+export type State = {
   isInit: boolean
   user?: Object | null
 }
@@ -41,7 +41,7 @@ export const sessionSlice = createSlice({
   reducers: {
     init: (state: State) => {
       let user
-      if (typeof window !== 'undefined' ) {
+      if (typeof window !== 'undefined') {
         try {
           user = JSON.parse(localStorage.getItem('user') || '')
         } catch (e) {}
@@ -58,7 +58,7 @@ export const sessionSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addMatcher(
-      (action) => [loginAsync.fulfilled, loggedIn.type].includes(action.type),
+      isAnyOf(loginAsync.fulfilled, loggedIn),
       (state, action: PayloadAction<SocketResponse['AuthenticateUser']>) => {
         const res = action.payload
         if (res.Authenticated) {

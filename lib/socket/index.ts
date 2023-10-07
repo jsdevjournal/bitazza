@@ -151,7 +151,7 @@ class BTZSocket implements ISocket {
   _onMessage = (event: MessageEvent) => {
     console.log('onmessage')
     const frame: Frame<string> = JSON.parse(event.data)
-
+    
     if (frame.m === 1) {
       const data = {
         ...frame,
@@ -205,7 +205,7 @@ class BTZSocket implements ISocket {
 
   sendPromise = <A extends keyof SocketRequest>(topic: A, payload?: SocketRequest[A]): Promise<SocketResponse[A]> => {
     const promise =  new Promise<SocketResponse[A]>(resolve => {
-      const identifier = ++this.identifier 
+      const identifier = this.identifier++
       this.wm.set(identifier, resolve)
       const data = JSON.stringify({
         m: 0,

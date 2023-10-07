@@ -6,7 +6,7 @@ import { sessionSlice, tradeSlice } from './slices'
 import logger from 'redux-logger'
 import btzsocket from '@/lib/socket'
 
-const store = configureStore({
+export const store = configureStore({
   reducer: {
     session: sessionSlice.reducer,
     trade: tradeSlice.reducer
@@ -20,6 +20,7 @@ const ReduxProvider = (props: React.PropsWithChildren) => {
   return <Provider store={store}>{props.children}</Provider>
 }
 
+export type RootState = typeof store.getState
 export type AppDispatch = typeof store.dispatch
 export const useAppDispatch: () => AppDispatch = useDispatch // 
 

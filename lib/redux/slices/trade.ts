@@ -1,4 +1,11 @@
-import { createAction, createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit'
+import {
+  createSelector,
+  createAction,
+  createSlice,
+  PayloadAction,
+  createAsyncThunk,
+  isAnyOf
+} from '@reduxjs/toolkit'
 import btzsocket, { type SocketListener, SocketResponse } from '@/lib/socket'
 import { sub } from 'date-fns'
 
@@ -21,6 +28,10 @@ export type PriceHistory = {
 }
 
 export type Instrument = SocketResponse['GetInstruments'][number]
+
+export type ComputedInstrument = Instrument & {
+  Prices: PriceHistory[]
+}
 
 export const getInstrumentsAsync = createAsyncThunk(
   'trades/getInstrumentsAsync',
@@ -59,14 +70,12 @@ export const convertPriceHistory = (array: number[]): PriceHistory => ({
   InstrumentId: array[8]
 })
 
-type State = {
-  instruments: Record<Instrument['InstrumentId'], Instrument>,
-  prices: Record<PriceHistory['InstrumentId'], PriceHistory[]>
+export type State = {
+  computed: Record<ComputedInstrument['InstrumentId'], ComputedInstrument>
 }
 
 const initialState = {
-  instruments: {},
-  prices: {}
+  computed: {}
 } as State
 
 export const tradeSlice = createSlice({
@@ -76,16 +85,22 @@ export const tradeSlice = createSlice({
     gotHistory: (state: State, action: PayloadAction<SocketResponse['GetTickerHistory']>) => {
       const val = action.payload.map(convertPriceHistory)
       if (val.length) {
-        state.prices[val[0].InstrumentId] = val.sort((a, b) => b.DateTime - a.DateTime)
+        if (state.computed[val[0].InstrumentId]) {
+          state.computed[val[0].InstrumentId].Prices = val.sort((a, b) => b.DateTime - a.DateTime)
+        }
+        // state.prices[val[0].InstrumentId] = val.sort((a, b) => b.DateTime - a.DateTime)
       }
     },
   },
   extraReducers: (builder) => {
     builder.addMatcher(
-      (action) => [getInstrumentsAsync.fulfilled, gotInstruments.type].includes(action.type),
+      isAnyOf(getInstrumentsAsync.fulfilled, gotInstruments),
       (state, action: PayloadAction<SocketResponse['GetInstruments']>) => {
         for (let val of action.payload) {
-          state.instruments[val.InstrumentId] = val
+          // state.instruments[val.InstrumentId] = val
+          if (!state.computed[val.InstrumentId]) {
+            state.computed[val.InstrumentId] = Object.assign({ Prices: [] }, val)
+          }
         }
       }
     )
@@ -108,4 +123,39 @@ btzsocket.getInstance().addListener(listener)
 
 export const { gotHistory } = tradeSlice.actions
 
-export const selectTrade = (state: { trade: State }) => state.trade
+export type SelectComputedTrade = {
+  Symbol: string,
+  InstrumentId: number,
+  Close: number,
+  Change: number,
+  ChangePercent: number
+}
+
+export const selectComputed = (state: { trade: State }) => state.trade.computed
+
+export const selectTrade = (search: string, period: PriceHistoryPeriod) => createSelector(selectComputed, computed => {
+  let lookbackIndex = 1
+  if (period === PriceHistoryPeriod.D) {
+    lookbackIndex = 1
+  } else if (period === PriceHistoryPeriod.W) {
+    lookbackIndex = 7
+  } else if (period === PriceHistoryPeriod.M) {
+    lookbackIndex = 30
+  }
+  return Object.values(computed)
+    .filter(val => val.Symbol.includes(search.toUpperCase()) && val.Prices.length)
+    .map(val => {
+      const { Prices, Symbol, InstrumentId } = val
+      const Close = Prices[0].Close
+      const Change = Close - Prices[lookbackIndex]?.Close
+      const ChangePercent = ((Close / Prices[lookbackIndex]?.Close) * 100) - 100
+      return {
+        Symbol,
+        InstrumentId,
+        Close,
+        Change,
+        ChangePercent
+      }
+    })
+    .sort((a, b) => b.ChangePercent - a.ChangePercent)
+})

@@ -1,9 +1,14 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppDispatch } from '@/lib/redux'
 import { useSelector } from 'react-redux'
 import { logOut } from '@/lib/redux/slices/session'
-import { getPriceHistory, selectTrade, PriceHistoryPeriod, getInstrumentsAsync } from '@/lib/redux/slices/trade'
+import {
+  getPriceHistory,
+  selectTrade,
+  PriceHistoryPeriod,
+  getInstrumentsAsync
+} from '@/lib/redux/slices/trade'
 import useSession from '@/lib/hooks/useSession'
 import Button from '@/components/Button'
 import Layout from '@/components/Layout'
@@ -14,11 +19,11 @@ export default function Page() {
   const [period, setPeriod] = useState<PriceHistoryPeriod>(PriceHistoryPeriod.D)
   const dispatch = useAppDispatch()
 
-  const [isInit, user] = useSession({
-    redirectTo: '/',
-  })
+  // const [isInit, user] = useSession({
+  //   redirectTo: '/',
+  // })
 
-  const { instruments, prices } = useSelector(selectTrade)
+  const pairs = useSelector(selectTrade(search, period))
 
   useEffect(() => {
     (async () => {
@@ -27,32 +32,7 @@ export default function Page() {
     })()
   }, [])
 
-  const pairs = useMemo(() => {
-    let lookbackIndex = 1
-    if (period === PriceHistoryPeriod.D) {
-      lookbackIndex = 1
-    } else if (period === PriceHistoryPeriod.W) {
-      lookbackIndex = 7
-    } else if (period === PriceHistoryPeriod.M) {
-      lookbackIndex = 30
-    }
-    return Object.values(instruments)
-      .filter(val => val?.Symbol.includes(search.toUpperCase()))
-      .map(val => {
-        const Prices = prices[val.InstrumentId] || []
-        const Close = Prices[0]?.Close
-        const Change = Close - Prices[lookbackIndex]?.Close
-        const ChangePercent = ((Close / Prices[lookbackIndex]?.Close) * 100) - 100
-        return {
-          ...val,
-          Meta: { Prices, Close, Change, ChangePercent }
-        }
-      })
-      .filter(val => !!val.Meta.Close)
-      .sort((a, b) => b.Meta.ChangePercent - a.Meta.ChangePercent)
-  }, [instruments, prices, search, period])
-
-  if (!isInit || !user) return false
+  // if (!isInit || !user) return false
 
   const gainers = pairs.slice(0, 5)
   const losers = pairs.slice(-5)
