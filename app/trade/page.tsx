@@ -19,9 +19,9 @@ export default function Page() {
   const [period, setPeriod] = useState<PriceHistoryPeriod>(PriceHistoryPeriod.D)
   const dispatch = useAppDispatch()
 
-  // const [isInit, user] = useSession({
-  //   redirectTo: '/',
-  // })
+  const [isInit, user] = useSession({
+    redirectTo: '/',
+  })
 
   const pairs = useSelector(selectTrade(search, period))
 
@@ -32,7 +32,7 @@ export default function Page() {
     })()
   }, [])
 
-  // if (!isInit || !user) return false
+  if (!isInit || !user) return false
 
   const gainers = pairs.slice(0, 5)
   const losers = pairs.slice(-5)
